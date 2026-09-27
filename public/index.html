@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schrijf je in</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f5f5f7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+  }
+  .card {
+    background: white;
+    border-radius: 16px;
+    padding: 40px;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 22px; margin: 0 0 8px; color: #1d1d1f; }
+  p.sub { color: #6e6e73; margin: 0 0 24px; font-size: 14px; }
+  input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #d2d2d7;
+    border-radius: 10px;
+    font-size: 15px;
+    box-sizing: border-box;
+    margin-bottom: 12px;
+  }
+  button {
+    width: 100%;
+    padding: 12px;
+    background: #0071e3;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:disabled { background: #a1a1a6; cursor: default; }
+  #msg { margin-top: 14px; font-size: 14px; text-align: center; }
+  #msg.success { color: #1a7f37; }
+  #msg.error { color: #d70015; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Blijf op de hoogte</h1>
+    <p class="sub">Schrijf je in voor de nieuwsbrief.</p>
+    <form id="form">
+      <input type="email" id="email" placeholder="jouw@email.com" required>
+      <button type="submit" id="btn">Inschrijven</button>
+    </form>
+    <div id="msg"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('form');
+    const btn = document.getElementById('btn');
+    const msg = document.getElementById('msg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      btn.disabled = true;
+      btn.textContent = 'Bezig...';
+      msg.textContent = '';
+      msg.className = '';
+
+      try {
+        const res = await fetch('/api/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          msg.textContent = 'Bedankt! Je staat op de lijst.';
+          msg.className = 'success';
+          form.reset();
+        } else {
+          msg.textContent = data.error || 'Er ging iets mis.';
+          msg.className = 'error';
+        }
+      } catch (err) {
+        msg.textContent = 'Er ging iets mis. Probeer opnieuw.';
+        msg.className = 'error';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Inschrijven';
+      }
+    });
+  </script>
+</body>
+</html>

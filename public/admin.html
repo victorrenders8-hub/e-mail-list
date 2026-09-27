@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - Email lijst</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f5f5f7;
+    margin: 0;
+    padding: 40px 20px;
+  }
+  .wrap { max-width: 700px; margin: 0 auto; }
+  h1 { font-size: 24px; color: #1d1d1f; }
+  .toolbar { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; }
+  input[type=password] {
+    padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 8px; font-size: 14px;
+  }
+  button {
+    padding: 10px 16px; background: #0071e3; color: white; border: none;
+    border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 600;
+  }
+  button.secondary { background: #6e6e73; }
+  table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+  th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+  th { background: #fafafa; color: #6e6e73; font-weight: 600; }
+  #count { color: #6e6e73; font-size: 14px; margin-bottom: 14px; }
+  #status { color: #d70015; font-size: 14px; margin-top: 10px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Jouw abonnees</h1>
+    <div class="toolbar">
+      <input type="password" id="pw" placeholder="Admin wachtwoord">
+      <button onclick="load()">Laden</button>
+      <button class="secondary" onclick="exportCsv()">Exporteer CSV</button>
+    </div>
+    <div id="status"></div>
+    <div id="count"></div>
+    <table id="table" style="display:none">
+      <thead><tr><th>Email</th><th>Ingeschreven op</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <script>
+    let lastData = [];
+
+    async function load() {
+      const pw = document.getElementById('pw').value;
+      const status = document.getElementById('status');
+      status.textContent = '';
+      try {
+        const res = await fetch('/api/subscribers', {
+          headers: { 'Authorization': 'Bearer ' + pw }
+        });
+        if (!res.ok) {
+          status.textContent = res.status === 401 ? 'Verkeerd wachtwoord.' : 'Kon lijst niet laden.';
+          return;
+        }
+        const data = await res.json();
+        lastData = data.subscribers;
+        renderTable(lastData);
+      } catch (err) {
+        status.textContent = 'Er ging iets mis.';
+      }
+    }
+
+    function renderTable(rows) {
+      const tbody = document.getElementById('tbody');
+      const table = document.getElementById('table');
+      const count = document.getElementById('count');
+      tbody.innerHTML = '';
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        const date = new Date(r.created_at).toLocaleDateString('nl-BE');
+        tr.innerHTML = `<td>${r.email}</td><td>${date}</td>`;
+        tbody.appendChild(tr);
+      });
+      count.textContent = rows.length + ' abonnee(s)';
+      table.style.display = rows.length ? 'table' : 'none';
+    }
+
+    function exportCsv() {
+      if (!lastData.length) return;
+      const rows = [['email', 'ingeschreven_op'], ...lastData.map(r => [r.email, r.created_at])];
+      const csv = rows.map(r => r.join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'email-lijst.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
